@@ -147,49 +147,60 @@ function drawPixel(imagedata,x,y,color) {
     
 
 /* main -- here is where execution begins after window load */
-
 function main() {
 
     // Get the canvas, context, and image data
     var canvas = document.getElementById("viewport"); 
     var context = canvas.getContext("2d");
-    var w = context.canvas.width; // as set in html
-    var h = context.canvas.height;  // as set in html
+    var w = context.canvas.width;
+    var h = context.canvas.height;
     var imagedata = context.createImageData(w,h);
- 
-    // Define a rectangle in 2D with colors and coords at corners
-    var ulc = new Color(255,0,0,255); // upper left corner color: red
-    var urc = new Color(0,255,0,255); // upper right corner color: green
-    var llc = new Color(0,0,255,255); // lower left corner color: blue
-    var lrc = new Color(0,0,0,255); // lower right corner color: black
-    var ulx = 50, uly = 50; // upper left corner position
-    var urx = 200, ury = 50; // upper right corner position
-    var llx = 50, lly = 150; // lower left corner position
-    var lrx = 200, lry = 150; // lower right corner position
-    
-    // set up the vertical interpolation
-    var lc = ulc.clone();  // left color
-    var rc = urc.clone();  // right color
-    var vDelta = 1 / (lly-uly); // norm'd vertical delta
-    var lcDelta = llc.clone().subtract(ulc).scale(vDelta); // left vert color delta
-    var rcDelta = lrc.clone().subtract(urc).scale(vDelta); // right vert color delta
-    
-    // set up the horizontal interpolation
-    var hc = new Color(); // horizontal color
-    var hDelta = 1 / (urx-ulx); // norm'd horizontal delta
-    var hcDelta = new Color(); // horizontal color delta
-    
-    // do the interpolation
-    for (var y=uly; y<=lly; y++) {
-        hc.copy(lc); // begin with the left color
-        hcDelta.copy(rc).subtract(lc).scale(hDelta); // reset horiz color delta
-        for (var x=ulx; x<=urx; x++) {
-            drawPixel(imagedata,x,y,hc);
-            hc.add(hcDelta);
-        } // end horizontal
-        lc.add(lcDelta);
-        rc.add(rcDelta);
-    } // end vertical
-    
-    context.putImageData(imagedata, 0, 0); // display the image in the context
+
+    // Define the three triangle vertices and their colors
+    var v1 = new Color(0,255,255,255);   // cyan
+    var v2 = new Color(255,0,255,255);   // magenta
+    var v3 = new Color(0,255,0,255);     // green
+
+    // Define the three vertex positions
+    var v1x = 150, v1y = 30;
+    var v2x = 50,  v2y = 150;
+    var v3x = 250, v3y = 150;
+
+    var lc = v1.clone();
+    var leftDelta = v2.clone().subtract(v1).scale(1 / (v2y - v1y));
+
+    var rc = v1.clone();
+    var rightDelta = v3.clone().subtract(v1).scale(1 / (v3y - v1y));
+
+    var hc = new Color();
+    var hcDelta = new Color();
+
+    for (var y = v1y; y <= v2y; y++) {
+
+        var leftX = v1x + (v2x - v1x) * (y - v1y) / (v2y - v1y);
+        var rightX = v1x + (v3x - v1x) * (y - v1y) / (v3y - v1y);
+
+        leftX = Math.round(leftX);
+        rightX = Math.round(rightX);
+
+        hc.copy(lc);
+
+        if (rightX != leftX) {
+
+            hcDelta.copy(rc).subtract(lc).scale(1 / (rightX - leftX));
+
+            for (var x = leftX; x <= rightX; x++) {
+                drawPixel(imagedata, x, y, hc);
+                hc.add(hcDelta);
+            }
+
+        } else {
+            drawPixel(imagedata, leftX, y, hc);
+        }
+
+        lc.add(leftDelta);
+        rc.add(rightDelta);
+    }
+
+    context.putImageData(imagedata, 0, 0);
 }
